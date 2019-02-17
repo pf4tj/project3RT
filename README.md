@@ -1,7 +1,7 @@
 # project3RT
 In this assignment, you will be writing the sending and receiving transport-level code for implementing a simple reliable data transfer protocol. There are two versions of this project, the Alternating-Bit version and the Go-Back-N version. This project should be fun since your implementation will differ very little from what would be required in a real-world situation.  Since you probably don't have standalone machines (with an OS that you can modify), your code will have to execute in a simulated hardware/software environment. However, the programming interface provided to your routines, i.e., the code that would call your entities from above and from below is very close to what is done in an actual UNIX environment. (Indeed, the software interfaces described in this programming assignment are much more realistic that the infinite loop senders and receivers that many texts describe).  The goal of your protocol is successfully and reliably transfer data from a sending entity (entity "A") to a receiver (entity "B"). In this project only unidirectional data (from A to B) is required, however, B will have to send acknowledgments (or negative acknowledgments) back to A. Your task is to implement the functions specified in entity.c for the alternating bit protocol and the go-back-N protocol.
 
-Simulation Environment
+#Simulation Environment
 
 To provide a realistic network this project includes a network simulator. The network is capable of corrupting and losing packets, but it will not reorder packets. The network simulator is configurable can adjust to simulate a very reliable network or one that is very lossy or likely to corrupt packets.
 
