@@ -47,10 +47,14 @@
 
 #include <stdio.h>
 #include "simulator.h"
+#include "entity.h"
 
 /**** A ENTITY ****/
 
 void A_init() {
+	// A.state = WAIT_LAYERS;
+	// A.seq = 0;
+	// A.estimated_rtt = 15;
 }
 
 void A_output(struct msg message) {
