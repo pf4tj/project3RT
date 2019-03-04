@@ -25,20 +25,20 @@
 // many of the bytes in `data` are actually valid. Note: every packet
 // transmitted between the two entities will 20 bytes of data, but not all of it
 // may be valid.
-struct msg {
+typedef struct msg {
   int length;
   char data[20];
-};
+} msg;
 
 // A `pkt` is the data unit passed from layer 4 (the "A" and "B" entities) to layer
 // 3 (the simulator). The `pkt` structure is pre-defined and may not be changed.
-struct pkt {
+typedef struct pkt {
   int seqnum;
   int acknum;
   int checksum;
   int length;
   char payload[20];
-};
+} pkt;
 
 
 /****** FUNCTION SIGNATURES ***************************************************/
