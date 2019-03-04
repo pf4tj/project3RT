@@ -48,17 +48,46 @@
 #include <stdio.h>
 #include "simulator.h"
 
+int base;
+int nextSeqNum;
+
 /**** A ENTITY ****/
+int calcCheckSum(struct pkt packet) {
 
+}
+unsigned char checksum(struct pkt packet) {
+
+}
 void A_init() {
+    base = 0;
+    nextSeqNum = 1;
 }
-
+//Called by the simulator with data passed from the application layer to your transport layer
+//containing data that should be sent to B. It is the job of your protocol to ensure that
+//the data in such a message is delivered in-order
 void A_output(struct msg message) {
-}
+  //Convert message to packet
+  pkt sendPacket;
 
+  sendPacket.seqnum = base;
+  sendPacket.acknum = base;
+  sendPacket.length = message.length;
+  for(int i = 0; i < sendPacket.length; i++) {
+    sendPacket.payload[i] = message.data[i];
+  }
+  sendPacket.checksum = calcCheckSum(sendPacket);
+
+  //Send packet to layer 3
+  tolayer3_A(sendPacket);
+
+  //Send packet to layer 3
+  starttimer_A(1);
+
+}
+//Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
 }
-
+//Routine to control retransmission of packets
 void A_timerinterrupt() {
 }
 
@@ -67,8 +96,19 @@ void A_timerinterrupt() {
 
 void B_init() {
 }
-
+//Packet received from A possibly corrupted
 void B_input(struct pkt packet) {
+  //check if packet is corrupted or ACK is wrong
+  //if so send back the packet and retart the timer
+  //tolayer3
+  //check if timed out
+  //if so send back the packet and restart the timers
+  //tolayer3
+  //Otherwise send to next state and stop the timer
+  //tolayer5
+
+  //update sequence number?
+
 }
 
 void B_timerinterrupt() {
