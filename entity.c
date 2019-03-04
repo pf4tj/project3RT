@@ -45,8 +45,13 @@
 // The simulator will write the received data on entity "B" to a file called
 // `output.dat`.
 
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <stdint.h>
+#include <string.h>
 #include <stdio.h>
 #include "simulator.h"
+#include "entity.h"
 
 int base;
 int nextSeqNum;
@@ -54,6 +59,11 @@ int nextSeqNum;
 /**** A ENTITY ****/
 int calcCheckSum(struct pkt packet) {
 
+<<<<<<< HEAD
+=======
+void A_init() {
+
+>>>>>>> f26b2fb06c9a964ae5dc6292ff1203947559cacf
 }
 unsigned char checksum(struct pkt packet) {
 
