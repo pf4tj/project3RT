@@ -59,11 +59,6 @@ int nextSeqNum;
 /**** A ENTITY ****/
 int calcCheckSum(struct pkt packet) {
 
-<<<<<<< HEAD
-=======
-void A_init() {
-
->>>>>>> f26b2fb06c9a964ae5dc6292ff1203947559cacf
 }
 unsigned char checksum(struct pkt packet) {
 
