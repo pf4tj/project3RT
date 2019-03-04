@@ -51,11 +51,12 @@
 #include <string.h>
 #include <stdio.h>
 #include "simulator.h"
+#include "entity.h"
 
 /**** A ENTITY ****/
 
 void A_init() {
-    
+
 }
 
 void A_output(struct msg message) {
