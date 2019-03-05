@@ -14,6 +14,12 @@
 // this file even if this file is included in the submission.
 
 #include "simulator.h"
+#include "stdbool.h"
+typedef struct utility{
+    int nextSeqNum;
+    int expectedSeqNum;
+    msg buffer[50];
+} util;
 
 
 /****** FUNCTION SIGNATURES ***************************************************/

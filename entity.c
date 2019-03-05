@@ -56,11 +56,27 @@
 int base;
 int nextSeqNum;
 
+typedef struct utility{
+    int base;
+    int nextSeqNum;
+    int expectedSeqNum;
+    msg buffer[50];
+} util;
+
+static const bool masterDebug = false;
+static const bool debugAinit = false;
+static const bool debugBinit = false;
+
+
 /**** A ENTITY ****/
 int calcCheckSum(struct pkt packet) {
 
 }
 unsigned char checksum(struct pkt packet) {
+  int sum = 0
+}
+
+unsigned char compare (pkt packet){
 
 }
 void A_init() {
@@ -73,7 +89,6 @@ void A_init() {
 void A_output(struct msg message) {
   //Convert message to packet
   pkt sendPacket;
-
   sendPacket.seqnum = base;
   sendPacket.acknum = base;
   sendPacket.length = message.length;
@@ -89,17 +104,21 @@ void A_output(struct msg message) {
   starttimer_A(1);
 
 }
+
 //Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
 }
+
 //Routine to control retransmission of packets
 void A_timerinterrupt() {
+  starttimer_A (1.0);
 }
 
 
 /**** B ENTITY ****/
 
 void B_init() {
+  
 }
 //Packet received from A possibly corrupted
 void B_input(struct pkt packet) {
@@ -111,10 +130,11 @@ void B_input(struct pkt packet) {
   //tolayer3
   //Otherwise send to next state and stop the timer
   //tolayer5
-
   //update sequence number?
 
 }
 
 void B_timerinterrupt() {
+   starttimer_B (1.0);
 }
+
