@@ -54,18 +54,68 @@
 #include "entity.h"
 
 int base;
-int nextSeqNum;
+int nextSeqnum;
+int lastSentAcknum;
+unsigned char timeoutA;
+unsigned char timeoutB;
 
 /**** A ENTITY ****/
 int calcCheckSum(struct pkt packet) {
 
-}
-unsigned char checksum(struct pkt packet) {
+    unsigned int sum = 0;
+    unsigned short* word16;
+
+    //Add up 16 bit pieces of header
+    if(sizeof(packet.seqnum) > 2) {
+      word16 = (unsigned short*)&packet.seqnum;
+      sum += word16[0];
+      sum += word16[1];
+    }
+    else {
+      sum += packet.seqnum;
+    }
+    if(sizeof(packet.acknum) > 2) {
+      word16 = (unsigned short*)&packet.acknum;
+      sum += word16[0];
+      sum += word16[1];
+    }
+    else {
+      sum += packet.acknum;
+    }
+    if(sizeof(packet.length) > 2) {
+      word16 = (unsigned short*)&packet.length;
+      sum += word16[0];
+      sum += word16[1];
+    }
+    else {
+      sum += packet.length;
+    }
+    for(int i  = 0; i < packet.length; i++) {
+      if(sizeof(packet.payload[i]) > 2) {
+          word16 = (unsigned short*)&packet.payload[i];
+          sum += word16[0];
+          sum += word16[1];
+      }
+      else {
+          sum += packet.payload[i];
+      }
+    }
+
+    //Get ones complement result
+    while(sum >> 16)
+      sum = (sum & 0xFFFF)+(sum>>16);
+
+    unsigned short checkSum = ~sum;
+
+    return checkSum;
 
 }
+
 void A_init() {
     base = 0;
-    nextSeqNum = 1;
+    nextSeqnum = 0;
+    lastSentAcknum = 0;
+    timeoutA = 0;
 }
 //Called by the simulator with data passed from the application layer to your transport layer
 //containing data that should be sent to B. It is the job of your protocol to ensure that
@@ -74,8 +124,8 @@ void A_output(struct msg message) {
   //Convert message to packet
   pkt sendPacket;
 
-  sendPacket.seqnum = base;
-  sendPacket.acknum = base;
+  sendPacket.seqnum = nextSeqnum;
+  sendPacket.acknum = nextSeqnum;
   sendPacket.length = message.length;
   for(int i = 0; i < sendPacket.length; i++) {
     sendPacket.payload[i] = message.data[i];
@@ -88,12 +138,24 @@ void A_output(struct msg message) {
   //Send packet to layer 3
   starttimer_A(1);
 
+  nextSeqnum++;
+  lastSentAcknum = sendPacket.acknum;
 }
 //Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
+  //Check if timeout occurs before response
+  if(timeoutA) {
+    timeoutA = 0;
+    starttimer_A();
+  }
+  //Fix corruption of packet
+  
+  //Resend packet
+
 }
 //Routine to control retransmission of packets
 void A_timerinterrupt() {
+  timeoutA = 1;
 }
 
 
@@ -103,14 +165,15 @@ void B_init() {
 }
 //Packet received from A possibly corrupted
 void B_input(struct pkt packet) {
-  //check if packet is corrupted or ACK is wrong
-  //if so send back the packet and retart the timer
-  //tolayer3
-  //check if timed out
-  //if so send back the packet and restart the timers
-  //tolayer3
+  //check if packet is corrupted or ACK is wrong or timed out
+  if(packet.checksum != calcCheckSum(packet) || lastSentAcknum != packet.acknum) {
+      //if so send back the packet and retart the timer
+      tolayer3_B(packet);
+  }
   //Otherwise send to next state and stop the timer
-  //tolayer5
+  else {
+    tolayer5_B(packet);
+  }
 
   //update sequence number?
 
