@@ -53,17 +53,44 @@
 #include "simulator.h"
 #include "entity.h"
 
+/*
+ - Any shared state among routines needs to be in the form of a global variable
+ - Any information that procedures need to save from one invocation to the next
+   must also be a global variable
+ - Need to keep a copy of a packet for possible retransmission
+ - If global variable is used by sender side it cannot be used by receiving side
+ -
+*/
+
 int base;
 int nextSeqnum;
 int lastSentAcknum;
 unsigned char timeoutA;
 unsigned char timeoutB;
+pkt lastSentPacket;
+pkt lastRcvPacket;
+int windowSize;
+
+/*
+typedef struct utility{
+    int base;
+    int nextSeqNum;
+    int expectedSeqNum;
+    msg buffer[50];
+} util;
+*/
+
+static const bool masterDebug = false;
+static const bool debugAinit = false;
+static const bool debugBinit = false;
+
 
 /**** A ENTITY ****/
 int calcCheckSum(struct pkt packet) {
 
     unsigned int sum = 0;
     unsigned short* word16;
+    unsigned char* word8;
 
     //Add up 16 bit pieces of header
     if(sizeof(packet.seqnum) > 2) {
@@ -91,19 +118,17 @@ int calcCheckSum(struct pkt packet) {
       sum += packet.length;
     }
     for(int i  = 0; i < packet.length; i++) {
-      if(sizeof(packet.payload[i]) > 2) {
-          word16 = (unsigned short*)&packet.payload[i];
-          sum += word16[0];
-          sum += word16[1];
-      }
-      else {
-          sum += packet.payload[i];
+      word8 = (unsigned char*)&packet.payload[i];
+      for(int j = 0; j < sizeof(packet.payload[i]); j++) {
+        sum += word8[j];
       }
     }
 
     //Get ones complement result
+    /*
     while(sum >> 16)
       sum = (sum & 0xFFFF)+(sum>>16);
+    */
 
     unsigned short checkSum = ~sum;
 
@@ -116,6 +141,7 @@ void A_init() {
     nextSeqnum = 0;
     lastSentAcknum = 0;
     timeoutA = 0;
+    windowSize = 8;
 }
 //Called by the simulator with data passed from the application layer to your transport layer
 //containing data that should be sent to B. It is the job of your protocol to ensure that
@@ -124,35 +150,58 @@ void A_output(struct msg message) {
   //Convert message to packet
   pkt sendPacket;
 
+  //printf("Converting message to packet\n");
   sendPacket.seqnum = nextSeqnum;
   sendPacket.acknum = nextSeqnum;
   sendPacket.length = message.length;
+  //printf("Packet length %d\n", sendPacket.length);
   for(int i = 0; i < sendPacket.length; i++) {
     sendPacket.payload[i] = message.data[i];
   }
   sendPacket.checksum = calcCheckSum(sendPacket);
 
   //Send packet to layer 3
+  //printf("Sending packet to layer 3\n");
   tolayer3_A(sendPacket);
 
-  //Send packet to layer 3
-  starttimer_A(1);
+  //printf("Starting timer\n");
+  starttimer_A(1.0);
 
-  nextSeqnum++;
-  lastSentAcknum = sendPacket.acknum;
+  lastSentPacket = sendPacket;
 }
+
 //Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
   //Check if timeout occurs before response
+  //stoptimer_A();
   if(timeoutA) {
     timeoutA = 0;
-    starttimer_A();
+    //stoptimer_A();
+
+    tolayer3_A(lastSentPacket);
+    starttimer_A(1.0);
   }
-  //Fix corruption of packet
-  
-  //Resend packet
+  //Check packet sent back against last sent packet
+  if(lastSentPacket.checksum != packet.checksum) {
+    //Corrupted -> resend "lastSentPacketA"
+    tolayer3_A(lastSentPacket);
+  }
+  else if(lastSentPacket.acknum != packet.acknum){
+    //Incorrect ack messsage -> resend "lastSentPacketA"
+    tolayer3_A(lastSentPacket);
+  }
+  else {
+    //Correct packet sent back
+    //update sequence number?
+    if(packet.seqnum == 0)
+      nextSeqnum = 1;
+    else
+      nextSeqnum = 0;
+    //Send next packet?
+  }
 
 }
+
 //Routine to control retransmission of packets
 void A_timerinterrupt() {
   timeoutA = 1;
@@ -160,24 +209,41 @@ void A_timerinterrupt() {
 
 
 /**** B ENTITY ****/
-
+int expectedAcknum;
+int expectedSeqnum;
 void B_init() {
+  expectedAcknum = 0;
+  expectedSeqnum = 0;
 }
 //Packet received from A possibly corrupted
 void B_input(struct pkt packet) {
+
+  //printf("Packet received\n");
   //check if packet is corrupted or ACK is wrong or timed out
-  if(packet.checksum != calcCheckSum(packet) || lastSentAcknum != packet.acknum) {
+  if(packet.checksum != calcCheckSum(packet) || expectedAcknum != packet.acknum) {
+
       //if so send back the packet and retart the timer
+      tolayer3_B(packet);
+  }
+  //check if duplicate packet
+  else if(lastRcvPacket.acknum == packet.acknum) {
       tolayer3_B(packet);
   }
   //Otherwise send to next state and stop the timer
   else {
-    tolayer5_B(packet);
+    expectedAcknum++;
+    msg message;
+    message.length = packet.length;
+    for(int i = 0; i< message.length; i++) {
+      message.data[i] = packet.payload[i];
+    }
+    tolayer5_B(message);
   }
 
-  //update sequence number?
+  lastRcvPacket = packet;
 
 }
 
 void B_timerinterrupt() {
+   timeoutB = 1;
 }

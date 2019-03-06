@@ -243,6 +243,7 @@ void init() {
     sum=sum+jimsrand();    // jimsrand() should be uniform in [0,1]
   }
   avg = sum/1000.0;
+  //printf("avg: %f\n", avg);
   if (avg < 0.25 || avg > 0.75) {
     printf("It is likely that random number generation on your machine\n" );
     printf("is different from what this simulator expects.  Please take\n");
@@ -262,7 +263,7 @@ void init() {
 // isolate all random number generation in one location. We assume that the
 // system-supplied rand() function return an int in therange [0,mmm].
 float jimsrand() {
-  double mmm = 2147483647;   // largest int  - MACHINE DEPENDENT!!!!!!!!
+  double mmm = 32767;   // largest int  - MACHINE DEPENDENT!!!!!!!!
   float x;                   // individual students may need to change mmm
   x = rand()/mmm;            // x should be uniform in [0,1]
   return x;
