@@ -185,15 +185,17 @@ void A_output(struct msg message) {
 //Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
 
-  if(packet.seqnum == expectedSeqnum && packet.checksum == calcCheckSum(packet)) {
+  if(packet.seqnum == expectedSeqnum_A && packet.checksum == calcCheckSum(packet)) {
     //Not corrupted
     base = packet.acknum + 1;
     if(base == nextSeqnum)
       stoptimer_A();
     else
       starttimer_A(1.0);
+    expectedSeqnum_A++;
   }
   else {
+    //corrupted
 
   }
 
@@ -221,12 +223,12 @@ void B_input(struct pkt packet) {
 
   pkt sendPacket;
   msg appMsg;
-  if(/*packet isn't corrupt*/ && packet.seqnum == expectedSeqnum) {
+  if(packet.checksum == calcCheckSum(packet) && packet.seqnum == expectedSeqnum_B) {
     appMsg.length = packet.length;
     memcpy(appMsg.data, packet.payload, appMsg.length);
     tolayer5_B(appMsg);
 
-    sendPacket.seqnum = expectedSeqnum;
+    sendPacket.seqnum = expectedSeqnum_B;
     sendPacket.acknum = packet.acknum;
     sendPacket.checksum = packet.checksum;
     sendPacket.length = packet.length;
@@ -234,34 +236,14 @@ void B_input(struct pkt packet) {
 
     tolayer3_B(sendPacket);
 
-    expectedSeqNum++;
+    expectedSeqNum_B++;
   }
-  //printf("Packet received\n");
-  //check if packet is corrupted or ACK is wrong or timed out
-  if(packet.checksum != calcCheckSum(packet) || expectedAcknum != packet.acknum) {
-
-      //if so send back the packet and retart the timer
-      tolayer3_B(packet);
-  }
-  //check if duplicate packet
-  else if(lastRcvPacket.acknum == packet.acknum) {
-      tolayer3_B(packet);
-  }
-  //Otherwise send to next state and stop the timer
   else {
-    expectedAcknum++;
-    msg message;
-    message.length = packet.length;
-    for(int i = 0; i< message.length; i++) {
-      message.data[i] = packet.payload[i];
-    }
-    tolayer5_B(message);
+    //Corrupted / out of order
   }
-
-  lastRcvPacket = packet;
 
 }
 
 void B_timerinterrupt() {
-   timeoutB = 1;
+
 }
