@@ -4,8 +4,8 @@
 /*                                                                            */
 /******************************************************************************/
 
-// Student names:
-// Student computing IDs:
+// Student names: Andrew Powell, Pierce Faraone
+// Student computing IDs: awp6rd, pf4tj
 //
 //
 // This file contains the actual code for the functions that will implement the
@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include "simulator.h"
 #include "entity.h"
+#include "stdbool.h"
 
 /*
  - Any shared state among routines needs to be in the form of a global variable
@@ -62,16 +63,20 @@
  -
 */
 
+int base;
+int nextSeqnum;
+int lastSentAcknum;
+unsigned char timeoutA;
+unsigned char timeoutB;
+pkt lastSentPacket;
+pkt lastRcvPacket;
+int windowsize;
+int cumulativeAck;
+pkt *sentPackets; 
+int expectedAcknum;
+int expectedSeqNum;
 
 
-/*
-typedef struct utility{
-    int base;
-    int nextSeqNum;
-    int expectedSeqNum;
-    msg buffer[50];
-} util;
-*/
 
 static const bool masterDebug = false;
 static const bool debugAinit = false;
@@ -139,10 +144,15 @@ int windowSize;
 int cumulativeAck;
 pkt *sentPackets;
 int expectedSeqnum_A;
+int windowSize;
 
 void A_init() {
     base = 0;
     nextSeqnum = 0;
+    lastSentAcknum = 0;
+    windowSize = 8;
+    sentPackets[windowSize];
+    // size_t len = (sizeof(sentPackets)/sizeof(sentPackets[])
     expectedSeqnum_A = 0;
     windowSize = 8;
     sentPackets = malloc(windowSize*sizeof(struct pkt));
@@ -173,10 +183,10 @@ void A_output(struct msg message) {
       //printf("Starting timer\n");
       starttimer_A(1.0);
     }
-
     nextSeqnum++;
   }
   else {
+    
     //Refuse data
   }
 
@@ -184,8 +194,23 @@ void A_output(struct msg message) {
 
 //Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
+<<<<<<< HEAD
 
   if(packet.seqnum == expectedSeqnum_A && packet.checksum == calcCheckSum(packet)) {
+=======
+  pkt rcvPacket;
+  unsigned char corrupted = 0;
+  for(int i = 0; i < sentPackets.size(); ++i) {
+    if(sentPackets[i].seqnum == packet.seqnum && sentPackets[i].checksum == packet.checksum) {
+      rcvPacket = sentPackets[i];
+    }
+    corrupted++;
+  }
+  //Not corrupted
+  if(corrupted < sentPackets - 1) {
+    base = rcvPacket.acknum + 1;
+  if(packet.seqnum == expectedSeqnum && packet.checksum == calcCheckSum(packet)) {
+>>>>>>> e70b6546b78b720d0007e1fa04940e825584827f
     //Not corrupted
     base = packet.acknum + 1;
     if(base == nextSeqnum)
@@ -195,24 +220,27 @@ void A_input(struct pkt packet) {
     expectedSeqnum_A++;
   }
   else {
+<<<<<<< HEAD
     //corrupted
 
+=======
+    
+>>>>>>> e70b6546b78b720d0007e1fa04940e825584827f
   }
 
 }
+}
 
 //Routine to control retransmission of packets
-void A_timerinterrupt() {
+void A_timerinterrupt(){
   starttimer_A(1.0);
   for(int i = base; i < nextSeqnum; i++) {
-    tolayer3_A(sendPackets[i]);
+    tolayer3_A(sendPacket[i]);
   }
 }
 
 
 /**** B ENTITY ****/
-int expectedAcknum_B;
-int expectedSeqnum_B;
 void B_init() {
   expectedAcknum_B = 0;
   expectedSeqnum_B = 0;
@@ -225,10 +253,18 @@ void B_input(struct pkt packet) {
   msg appMsg;
   if(packet.checksum == calcCheckSum(packet) && packet.seqnum == expectedSeqnum_B) {
     appMsg.length = packet.length;
+    for(int i = 0; i < appMsg.length; ++i) {
+      appMsg.data[i] = packet.payload[i];
+    }
+    memcpy(packet.payload, appMsg.data,);
     memcpy(appMsg.data, packet.payload, appMsg.length);
     tolayer5_B(appMsg);
 
+<<<<<<< HEAD
     sendPacket.seqnum = expectedSeqnum_B;
+=======
+    sendPacket.seqnum = expectedSeqNum;
+>>>>>>> e70b6546b78b720d0007e1fa04940e825584827f
     sendPacket.acknum = packet.acknum;
     sendPacket.checksum = packet.checksum;
     sendPacket.length = packet.length;
