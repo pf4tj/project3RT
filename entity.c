@@ -62,16 +62,7 @@
  -
 */
 
-int base;
-int nextSeqnum;
-int lastSentAcknum;
-unsigned char timeoutA;
-unsigned char timeoutB;
-pkt lastSentPacket;
-pkt lastRcvPacket;
-int windowSize;
-int cumulativeAck;
-pkt *sentPackets;
+
 
 /*
 typedef struct utility{
@@ -137,14 +128,24 @@ int calcCheckSum(struct pkt packet) {
     return checkSum;
 
 }
+int base;
+int nextSeqnum;
+int lastSentAcknum;
+unsigned char timeoutA;
+unsigned char timeoutB;
+pkt lastSentPacket;
+pkt lastRcvPacket;
+int windowSize;
+int cumulativeAck;
+pkt *sentPackets;
+int expectedSeqnum_A;
 
 void A_init() {
     base = 0;
     nextSeqnum = 0;
-    lastSentAcknum = 0;
-    timeoutA = 0;
+    expectedSeqnum_A = 0;
     windowSize = 8;
-    sentPackets[windowSize];
+    sentPackets = malloc(windowSize*sizeof(struct pkt));
 }
 //Called by the simulator with data passed from the application layer to your transport layer
 //containing data that should be sent to B. It is the job of your protocol to ensure that
@@ -160,9 +161,7 @@ void A_output(struct msg message) {
     sendPacket.acknum = nextSeqnum;
     sendPacket.length = message.length;
     //printf("Packet length %d\n", sendPacket.length);
-    for(int i = 0; i < sendPacket.length; i++) {
-      sendPacket.payload[i] = message.data[i];
-    }
+    memcpy(sendPacket.payload, message.data, sendPacket.length);
     sendPacket.checksum = calcCheckSum(sendPacket);
 
     sentPackets[nextSeqnum] = sendPacket;
@@ -186,23 +185,14 @@ void A_output(struct msg message) {
 //Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
 
-  pkt rcvPacket;
-  unsigned char corrupted = 0;
-  for(int i = 0; i < sentPackets.length; ++i) {
-    if(sentPackets[i].seqnum == packet.seqnum && sentPackets[i].checkSum == packet.checkSum) {
-      rcvPacket = sentPackets[i];
-    }
-    corrupted++;
-  }
-  //Not corrupted
-  if(corrupted < sentPackets.length - 1) {
-    base = rcvPacket.acknum + 1;
+  if(packet.seqnum == expectedSeqnum && packet.checksum == calcCheckSum(packet)) {
+    //Not corrupted
+    base = packet.acknum + 1;
     if(base == nextSeqnum)
       stoptimer_A();
     else
       starttimer_A(1.0);
   }
-  //Corrupted
   else {
 
   }
@@ -219,11 +209,11 @@ void A_timerinterrupt() {
 
 
 /**** B ENTITY ****/
-int expectedAcknum;
-int expectedSeqnum;
+int expectedAcknum_B;
+int expectedSeqnum_B;
 void B_init() {
-  expectedAcknum = 0;
-  expectedSeqnum = 0;
+  expectedAcknum_B = 0;
+  expectedSeqnum_B = 0;
   cumulativeAck = 0;
 }
 //Packet received from A possibly corrupted
@@ -233,10 +223,7 @@ void B_input(struct pkt packet) {
   msg appMsg;
   if(/*packet isn't corrupt*/ && packet.seqnum == expectedSeqnum) {
     appMsg.length = packet.length;
-    for(int i = 0; i < appMsg.length; ++i) {
-      appMsg.data[i] = packet.payload[i];
-    }
-    memcpy(packet.payload, appMsg.data, )
+    memcpy(appMsg.data, packet.payload, appMsg.length);
     tolayer5_B(appMsg);
 
     sendPacket.seqnum = expectedSeqnum;
