@@ -15,11 +15,6 @@
 
 #include "simulator.h"
 #include "stdbool.h"
-typedef struct utility{
-    int nextSeqNum;
-    int expectedSeqNum;
-    msg buffer[50];
-} util;
 
 
 /****** FUNCTION SIGNATURES ***************************************************/

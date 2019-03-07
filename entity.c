@@ -4,8 +4,8 @@
 /*                                                                            */
 /******************************************************************************/
 
-// Student names:
-// Student computing IDs:
+// Student names: Andrew Powell, Pierce Faraone
+// Student computing IDs: awp6rd, pf4tj
 //
 //
 // This file contains the actual code for the functions that will implement the
@@ -71,16 +71,10 @@ pkt lastSentPacket;
 pkt lastRcvPacket;
 int windowSize;
 int cumulativeAck;
-pkt *sentPackets;
+pkt *sentPackets; 
+int expectedAcknum;
+int expectedSeqNum;
 
-/*
-typedef struct utility{
-    int base;
-    int nextSeqNum;
-    int expectedSeqNum;
-    msg buffer[50];
-} util;
-*/
 
 static const bool masterDebug = false;
 static const bool debugAinit = false;
@@ -142,9 +136,9 @@ void A_init() {
     base = 0;
     nextSeqnum = 0;
     lastSentAcknum = 0;
-    timeoutA = 0;
     windowSize = 8;
     sentPackets[windowSize];
+    // size_t len = (sizeof(sentPackets)/sizeof(sentPackets[])
 }
 //Called by the simulator with data passed from the application layer to your transport layer
 //containing data that should be sent to B. It is the job of your protocol to ensure that
@@ -174,10 +168,10 @@ void A_output(struct msg message) {
       //printf("Starting timer\n");
       starttimer_A(1.0);
     }
-
     nextSeqnum++;
   }
   else {
+    
     //Refuse data
   }
 
@@ -188,14 +182,14 @@ void A_input(struct pkt packet) {
 
   pkt rcvPacket;
   unsigned char corrupted = 0;
-  for(int i = 0; i < sentPackets.length; ++i) {
+  for(int i = 0; i < sentPackets.size()length; ++i) {
     if(sentPackets[i].seqnum == packet.seqnum && sentPackets[i].checkSum == packet.checkSum) {
       rcvPacket = sentPackets[i];
     }
     corrupted++;
   }
   //Not corrupted
-  if(corrupted < sentPackets.length - 1) {
+  if(corrupted < sentPackets - 1) {
     base = rcvPacket.acknum + 1;
     if(base == nextSeqnum)
       stoptimer_A();
@@ -204,7 +198,7 @@ void A_input(struct pkt packet) {
   }
   //Corrupted
   else {
-
+    
   }
 
 }
@@ -213,17 +207,15 @@ void A_input(struct pkt packet) {
 void A_timerinterrupt() {
   starttimer_A(1.0);
   for(int i = base; i < nextSeqnum; i++) {
-    tolayer3_A(sendPackets[i]);
+    tolayer3_A(sendPacket[i]);
   }
 }
 
 
 /**** B ENTITY ****/
-int expectedAcknum;
-int expectedSeqnum;
 void B_init() {
   expectedAcknum = 0;
-  expectedSeqnum = 0;
+  expectedSeqNum = 0;
   cumulativeAck = 0;
 }
 //Packet received from A possibly corrupted
@@ -236,10 +228,10 @@ void B_input(struct pkt packet) {
     for(int i = 0; i < appMsg.length; ++i) {
       appMsg.data[i] = packet.payload[i];
     }
-    memcpy(packet.payload, appMsg.data, )
+    memcpy(packet.payload, appMsg.data,);
     tolayer5_B(appMsg);
 
-    sendPacket.seqnum = expectedSeqnum;
+    sendPacket.seqnum = expectedSeqNum;
     sendPacket.acknum = packet.acknum;
     sendPacket.checksum = packet.checksum;
     sendPacket.length = packet.length;

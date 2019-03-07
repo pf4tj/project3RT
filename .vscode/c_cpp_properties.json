@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/c/cygwin64",
-                "C:/MinGW/include"
+                "C:/MinGW/include",
+                "C:/MinGW/lib/gcc/mingw32/6.3.0/include"
             ],
             "defines": [
                 "_DEBUG",
