@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include "simulator.h"
 #include "entity.h"
+#include "stdbool.h"
 
 /*
  - Any shared state among routines needs to be in the form of a global variable
@@ -69,11 +70,12 @@ unsigned char timeoutA;
 unsigned char timeoutB;
 pkt lastSentPacket;
 pkt lastRcvPacket;
-int windowSize;
+int windowsize;
 int cumulativeAck;
 pkt *sentPackets; 
 int expectedAcknum;
 int expectedSeqNum;
+
 
 
 static const bool masterDebug = false;
@@ -131,6 +133,18 @@ int calcCheckSum(struct pkt packet) {
     return checkSum;
 
 }
+int base;
+int nextSeqnum;
+int lastSentAcknum;
+unsigned char timeoutA;
+unsigned char timeoutB;
+pkt lastSentPacket;
+pkt lastRcvPacket;
+int windowSize;
+int cumulativeAck;
+pkt *sentPackets;
+int expectedSeqnum_A;
+int windowSize;
 
 void A_init() {
     base = 0;
@@ -139,6 +153,9 @@ void A_init() {
     windowSize = 8;
     sentPackets[windowSize];
     // size_t len = (sizeof(sentPackets)/sizeof(sentPackets[])
+    expectedSeqnum_A = 0;
+    windowSize = 8;
+    sentPackets = malloc(windowSize*sizeof(struct pkt));
 }
 //Called by the simulator with data passed from the application layer to your transport layer
 //containing data that should be sent to B. It is the job of your protocol to ensure that
@@ -154,9 +171,7 @@ void A_output(struct msg message) {
     sendPacket.acknum = nextSeqnum;
     sendPacket.length = message.length;
     //printf("Packet length %d\n", sendPacket.length);
-    for(int i = 0; i < sendPacket.length; i++) {
-      sendPacket.payload[i] = message.data[i];
-    }
+    memcpy(sendPacket.payload, message.data, sendPacket.length);
     sendPacket.checksum = calcCheckSum(sendPacket);
 
     sentPackets[nextSeqnum] = sendPacket;
@@ -179,11 +194,10 @@ void A_output(struct msg message) {
 
 //Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
-
   pkt rcvPacket;
   unsigned char corrupted = 0;
-  for(int i = 0; i < sentPackets.size()length; ++i) {
-    if(sentPackets[i].seqnum == packet.seqnum && sentPackets[i].checkSum == packet.checkSum) {
+  for(int i = 0; i < sentPackets.size(); ++i) {
+    if(sentPackets[i].seqnum == packet.seqnum && sentPackets[i].checksum == packet.checksum) {
       rcvPacket = sentPackets[i];
     }
     corrupted++;
@@ -191,20 +205,23 @@ void A_input(struct pkt packet) {
   //Not corrupted
   if(corrupted < sentPackets - 1) {
     base = rcvPacket.acknum + 1;
+  if(packet.seqnum == expectedSeqnum && packet.checksum == calcCheckSum(packet)) {
+    //Not corrupted
+    base = packet.acknum + 1;
     if(base == nextSeqnum)
       stoptimer_A();
     else
       starttimer_A(1.0);
   }
-  //Corrupted
   else {
     
   }
 
 }
+}
 
 //Routine to control retransmission of packets
-void A_timerinterrupt() {
+void A_timerinterrupt(){
   starttimer_A(1.0);
   for(int i = base; i < nextSeqnum; i++) {
     tolayer3_A(sendPacket[i]);
@@ -214,8 +231,8 @@ void A_timerinterrupt() {
 
 /**** B ENTITY ****/
 void B_init() {
-  expectedAcknum = 0;
-  expectedSeqNum = 0;
+  expectedAcknum_B = 0;
+  expectedSeqnum_B = 0;
   cumulativeAck = 0;
 }
 //Packet received from A possibly corrupted
@@ -229,6 +246,7 @@ void B_input(struct pkt packet) {
       appMsg.data[i] = packet.payload[i];
     }
     memcpy(packet.payload, appMsg.data,);
+    memcpy(appMsg.data, packet.payload, appMsg.length);
     tolayer5_B(appMsg);
 
     sendPacket.seqnum = expectedSeqNum;
