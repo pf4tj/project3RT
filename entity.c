@@ -70,6 +70,8 @@ unsigned char timeoutB;
 pkt lastSentPacket;
 pkt lastRcvPacket;
 int windowSize;
+int cumulativeAck;
+pkt *sentPackets;
 
 /*
 typedef struct utility{
@@ -142,69 +144,77 @@ void A_init() {
     lastSentAcknum = 0;
     timeoutA = 0;
     windowSize = 8;
+    sentPackets[windowSize];
 }
 //Called by the simulator with data passed from the application layer to your transport layer
 //containing data that should be sent to B. It is the job of your protocol to ensure that
 //the data in such a message is delivered in-order
 void A_output(struct msg message) {
-  //Convert message to packet
-  pkt sendPacket;
 
-  //printf("Converting message to packet\n");
-  sendPacket.seqnum = nextSeqnum;
-  sendPacket.acknum = nextSeqnum;
-  sendPacket.length = message.length;
-  //printf("Packet length %d\n", sendPacket.length);
-  for(int i = 0; i < sendPacket.length; i++) {
-    sendPacket.payload[i] = message.data[i];
+  if(nextSeqnum < base + windowsize) {
+    //Convert message to packet
+    pkt sendPacket;
+
+    //printf("Converting message to packet\n");
+    sendPacket.seqnum = nextSeqnum;
+    sendPacket.acknum = nextSeqnum;
+    sendPacket.length = message.length;
+    //printf("Packet length %d\n", sendPacket.length);
+    for(int i = 0; i < sendPacket.length; i++) {
+      sendPacket.payload[i] = message.data[i];
+    }
+    sendPacket.checksum = calcCheckSum(sendPacket);
+
+    sentPackets[nextSeqnum] = sendPacket;
+    //Send packet to layer 3
+    //printf("Sending packet to layer 3\n");
+    tolayer3_A(sentPackets[nextSeqnum]);
+
+    if(base == nextSeqnum) {
+      //printf("Starting timer\n");
+      starttimer_A(1.0);
+    }
+
+    nextSeqnum++;
   }
-  sendPacket.checksum = calcCheckSum(sendPacket);
+  else {
+    //Refuse data
+  }
 
-  //Send packet to layer 3
-  //printf("Sending packet to layer 3\n");
-  tolayer3_A(sendPacket);
-
-  //printf("Starting timer\n");
-  starttimer_A(1.0);
-
-  lastSentPacket = sendPacket;
 }
 
 //Called whenever a packet is sent from B to A. Packet may be corrupted
 void A_input(struct pkt packet) {
-  //Check if timeout occurs before response
-  //stoptimer_A();
-  if(timeoutA) {
-    timeoutA = 0;
-    //stoptimer_A();
 
-    tolayer3_A(lastSentPacket);
-    starttimer_A(1.0);
+  pkt rcvPacket;
+  unsigned char corrupted = 0;
+  for(int i = 0; i < sentPackets.length; ++i) {
+    if(sentPackets[i].seqnum == packet.seqnum && sentPackets[i].checkSum == packet.checkSum) {
+      rcvPacket = sentPackets[i];
+    }
+    corrupted++;
   }
-  //Check packet sent back against last sent packet
-  if(lastSentPacket.checksum != packet.checksum) {
-    //Corrupted -> resend "lastSentPacketA"
-    tolayer3_A(lastSentPacket);
-  }
-  else if(lastSentPacket.acknum != packet.acknum){
-    //Incorrect ack messsage -> resend "lastSentPacketA"
-    tolayer3_A(lastSentPacket);
-  }
-  else {
-    //Correct packet sent back
-    //update sequence number?
-    if(packet.seqnum == 0)
-      nextSeqnum = 1;
+  //Not corrupted
+  if(corrupted < sentPackets.length - 1) {
+    base = rcvPacket.acknum + 1;
+    if(base == nextSeqnum)
+      stoptimer_A();
     else
-      nextSeqnum = 0;
-    //Send next packet?
+      starttimer_A(1.0);
+  }
+  //Corrupted
+  else {
+
   }
 
 }
 
 //Routine to control retransmission of packets
 void A_timerinterrupt() {
-  timeoutA = 1;
+  starttimer_A(1.0);
+  for(int i = base; i < nextSeqnum; i++) {
+    tolayer3_A(sendPackets[i]);
+  }
 }
 
 
@@ -214,10 +224,31 @@ int expectedSeqnum;
 void B_init() {
   expectedAcknum = 0;
   expectedSeqnum = 0;
+  cumulativeAck = 0;
 }
 //Packet received from A possibly corrupted
 void B_input(struct pkt packet) {
 
+  pkt sendPacket;
+  msg appMsg;
+  if(/*packet isn't corrupt*/ && packet.seqnum == expectedSeqnum) {
+    appMsg.length = packet.length;
+    for(int i = 0; i < appMsg.length; ++i) {
+      appMsg.data[i] = packet.payload[i];
+    }
+    memcpy(packet.payload, appMsg.data, )
+    tolayer5_B(appMsg);
+
+    sendPacket.seqnum = expectedSeqnum;
+    sendPacket.acknum = packet.acknum;
+    sendPacket.checksum = packet.checksum;
+    sendPacket.length = packet.length;
+    memcpy(sendPacket.payload, packet.payload, sendPacket.length);
+
+    tolayer3_B(sendPacket);
+
+    expectedSeqNum++;
+  }
   //printf("Packet received\n");
   //check if packet is corrupted or ACK is wrong or timed out
   if(packet.checksum != calcCheckSum(packet) || expectedAcknum != packet.acknum) {
